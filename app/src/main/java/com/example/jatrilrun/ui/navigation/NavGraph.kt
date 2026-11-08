@@ -24,6 +24,7 @@ fun NavGraph(
                 onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
+                        launchSingleTop = true
                     }
                 }
             )
@@ -41,6 +42,9 @@ fun NavGraph(
         composable(Screen.Home.route) {
             HomeScreen(
                 onNavigateToPayment = { navController.navigate(Screen.Payment.route) },
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) { launchSingleTop = true }
+                },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }

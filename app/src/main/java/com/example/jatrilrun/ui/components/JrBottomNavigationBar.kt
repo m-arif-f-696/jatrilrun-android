@@ -2,14 +2,17 @@ package com.example.jatrilrun.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.jatrilrun.R
@@ -28,7 +31,8 @@ data class BottomNavItem(
 fun JrBottomNavigationBar(
     selectedRoute: String = "home",
     onTabSelected: (String) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    containerColor: Color = JatrilrunTheme.colors.backgroundPrimary
 ) {
     val items = listOf(
         BottomNavItem("Beranda", R.drawable.home, "home"),
@@ -41,7 +45,8 @@ fun JrBottomNavigationBar(
             .border(width = JrDimens.BorderWidth, color = JatrilrunTheme.colors.border)
             .fillMaxWidth()
             .height(76.dp)
-            .background(color = JatrilrunTheme.colors.backgroundPrimary)
+            .selectableGroup()
+            .background(color = containerColor)
             .padding(start = JrSpacing.None, top = JrSpacing.None, end = JrSpacing.None, bottom = JrSpacing.None),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
@@ -52,9 +57,9 @@ fun JrBottomNavigationBar(
 
             Column(
                 modifier = Modifier
-                    .width(130.dp)
+                    .weight(1f)
                     .height(72.dp)
-                    .clickable { onTabSelected(item.route) }
+                    .selectable(isSelected, role = Role.Tab) { onTabSelected(item.route) }
                     .padding(JrSpacing.S8),
 
                 verticalArrangement = Arrangement.spacedBy(JrSpacing.S4, Alignment.CenterVertically),
@@ -62,7 +67,7 @@ fun JrBottomNavigationBar(
             ) {
                 Icon(
                     painter = painterResource(id = item.iconRes),
-                    contentDescription = item.title,
+                    contentDescription = null,
                     tint = color,
                     modifier = Modifier.size(24.dp)
                 )
