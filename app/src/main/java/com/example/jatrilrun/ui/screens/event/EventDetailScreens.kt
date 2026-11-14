@@ -151,14 +151,14 @@ internal fun EventSchedule(onBack: () -> Unit, onRoute: () -> Unit, onCategories
 }
 
 @Composable
-internal fun EventCategories(onBack: () -> Unit, onContinue: () -> Unit) {
+internal fun EventCategories(onBack: () -> Unit, onContinue: (String) -> Unit) {
     var selectedDistance by rememberSaveable { mutableStateOf("") }
     val categories = baliTrailRun.categories
     val selected = categories.firstOrNull { it.distance == selectedDistance }
     EventScreen("Pilih kategori", onBack, bottomBar = {
         EventFooter(
             selected?.let { "Lanjut · ${rupiah(it.price)}" } ?: "Pilih kategori untuk lanjut",
-            onContinue,
+            { selected?.let { onContinue(it.distance) } },
             enabled = selected != null
         )
     }) {

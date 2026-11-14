@@ -1,6 +1,7 @@
 package com.example.jatrilrun.ui.screens.auth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,15 +24,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.jatrilrun.ui.components.CommonButton
 import com.example.jatrilrun.ui.components.CommonTextField
 import com.example.jatrilrun.ui.components.LoadingIndicator
+import com.example.jatrilrun.ui.screens.event.*
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @Composable
 fun LoginScreen(
+    selectedCategory: String? = null,
+    onBack: () -> Unit = {},
     onNavigateToRegister: () -> Unit,
     onLoginSuccess: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -41,39 +46,23 @@ fun LoginScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = "Masuk ke Jatrilrun", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        CommonTextField(value = email, onValueChange = { email = it }, label = "Email")
-        Spacer(modifier = Modifier.height(12.dp))
-
-        CommonTextField(value = password, onValueChange = { password = it }, label = "Password", isPassword = true)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (uiState is AuthUiState.Loading) {
-            LoadingIndicator()
-        } else {
-            CommonButton(text = "Masuk", onClick = { viewModel.login(email, password) })
+    EventScreen("Masuk", onBack, bottomBar = {
+        EventFooter("Masuk & lanjutkan", { viewModel.login(email, password) }, uiState !is AuthUiState.Loading)
+    }) {
+        EventTitle("Larimu dimulai\ndari sini.")
+        EventBody("Masuk untuk menyimpan data dan mengakses tiket.")
+        if (selectedCategory != null) EventBadge("$selectedCategory · pilihan tersimpan")
+        EventPanel("Masuk ke akunmu") {
+            CommonTextField(email, { email = it }, "Email")
+            EventCaption("Gunakan email yang aktif.")
+            CommonTextField(password, { password = it }, "Kata sandi", isPassword = true)
+            EventCaption("Minimal 8 karakter.")
         }
-
+        if (uiState is AuthUiState.Loading) LoadingIndicator()
         if (uiState is AuthUiState.Error) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = (uiState as AuthUiState.Error).message,
-                color = MaterialTheme.colorScheme.error
-            )
+            EventNotice("Gagal masuk", (uiState as AuthUiState.Error).message, warning = true)
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        TextButton(onClick = onNavigateToRegister) {
-            Text(text = "Belum punya akun? Daftar")
-        }
+        EventLink("Belum punya akun? Daftar", onNavigateToRegister, Modifier.fillMaxWidth())
+        EventCaption("Dengan melanjutkan, Anda menyetujui kebijakan privasi Jatrilrun.")
     }
 }

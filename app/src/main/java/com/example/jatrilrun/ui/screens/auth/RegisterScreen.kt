@@ -1,6 +1,9 @@
 package com.example.jatrilrun.ui.screens.auth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,16 +26,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.jatrilrun.ui.components.CommonButton
 import com.example.jatrilrun.ui.components.CommonTextField
 import com.example.jatrilrun.ui.components.LoadingIndicator
+import com.example.jatrilrun.ui.screens.event.*
+import androidx.compose.runtime.saveable.rememberSaveable
 
 @Composable
 fun RegisterScreen(
+    onBack: () -> Unit = {},
     onNavigateToLogin: () -> Unit,
     onRegisterSuccess: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var agreed by rememberSaveable { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -42,42 +49,27 @@ fun RegisterScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = "Daftar Akun Baru", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        CommonTextField(value = name, onValueChange = { name = it }, label = "Nama Lengkap")
-        Spacer(modifier = Modifier.height(12.dp))
-
-        CommonTextField(value = email, onValueChange = { email = it }, label = "Email")
-        Spacer(modifier = Modifier.height(12.dp))
-
-        CommonTextField(value = password, onValueChange = { password = it }, label = "Password", isPassword = true)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        if (uiState is AuthUiState.Loading) {
-            LoadingIndicator()
-        } else {
-            CommonButton(text = "Daftar", onClick = { viewModel.register(name, email, password) })
+    EventScreen("Daftar akun", onBack, bottomBar = {
+        EventFooter("Buat akun & lanjutkan", { viewModel.register(name, email, password) },
+            agreed && name.isNotBlank() && email.isNotBlank() && password.length >= 8 && uiState !is AuthUiState.Loading)
+    }) {
+        EventTitle("Satu akun untuk\nsetiap perjalanan.")
+        EventPanel("Data akun") {
+            CommonTextField(name, { name = it }, "Nama lengkap")
+            EventCaption("Sesuai kartu identitas.")
+            CommonTextField(email, { email = it }, "Email")
+            EventCaption("Konfirmasi pendaftaran dikirim ke email ini.")
+            CommonTextField(password, { password = it }, "Kata sandi", isPassword = true)
+            EventCaption("Minimal 8 karakter, huruf dan angka.")
         }
-
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(agreed, { agreed = it })
+            EventText("Saya menyetujui kebijakan privasi")
+        }
+        if (uiState is AuthUiState.Loading) LoadingIndicator()
         if (uiState is AuthUiState.Error) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = (uiState as AuthUiState.Error).message,
-                color = MaterialTheme.colorScheme.error
-            )
+            EventNotice("Gagal membuat akun", (uiState as AuthUiState.Error).message, warning = true)
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        TextButton(onClick = onNavigateToLogin) {
-            Text(text = "Sudah punya akun? Masuk")
-        }
+        EventLink("Sudah punya akun? Masuk", onNavigateToLogin, Modifier.fillMaxWidth())
     }
 }

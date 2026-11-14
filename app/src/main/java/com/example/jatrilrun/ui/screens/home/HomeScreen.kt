@@ -34,7 +34,7 @@ private object DiscoverRoute {
 @Composable
 fun HomeScreen(
     onNavigateToPayment: () -> Unit,
-    onNavigateToLogin: () -> Unit,
+    onNavigateToLogin: (String) -> Unit,
     onLogout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
