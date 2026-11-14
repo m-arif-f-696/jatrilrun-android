@@ -58,9 +58,6 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun logout() {
-        try {
-            apiService.logout()
-        } catch (e: Exception) {}
         userDao.clearUser()
         sessionManager.clearSession()
     }
