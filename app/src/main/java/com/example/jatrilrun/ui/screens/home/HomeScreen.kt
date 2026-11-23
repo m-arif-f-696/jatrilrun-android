@@ -14,6 +14,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.jatrilrun.ui.components.CommonButton
 import com.example.jatrilrun.ui.components.JrBottomNavigationBar
 import com.example.jatrilrun.ui.screens.event.*
+import com.example.jatrilrun.ui.screens.tickets.TicketsScreen
+import com.example.jatrilrun.ui.screens.tickets.TicketsViewModel
 import com.example.jatrilrun.ui.theme.JatrilrunTheme
 import com.example.jatrilrun.ui.theme.JrSpacing
 
@@ -36,6 +38,7 @@ fun HomeScreen(
     onNavigateToPayment: () -> Unit,
     onNavigateToLogin: (String) -> Unit,
     onLogout: () -> Unit,
+    onOpenRacePass: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val user by viewModel.user.collectAsState()
@@ -120,7 +123,14 @@ fun HomeScreen(
             )
         }
         composable(DiscoverRoute.Tickets) {
-            TicketsPlaceholder { JrBottomNavigationBar(DiscoverRoute.Tickets, ::openTab) }
+            val ticketsViewModel: TicketsViewModel = hiltViewModel()
+            val tickets by ticketsViewModel.tickets.collectAsState()
+            TicketsScreen(
+                tickets = tickets,
+                onBrowse = { openTab(DiscoverRoute.Events) },
+                onOpenPass = { onOpenRacePass() },
+                bottomBar = { JrBottomNavigationBar(DiscoverRoute.Tickets, ::openTab) }
+            )
         }
         composable(DiscoverRoute.Search) {
             SearchEvents(
@@ -189,31 +199,6 @@ fun HomeScreen(
         }
         composable(DiscoverRoute.SoldOut) {
             SoldOutEvent(::back) { openTab(DiscoverRoute.Events) }
-        }
-    }
-}
-
-@Composable
-private fun TicketsPlaceholder(bottomBar: @Composable () -> Unit) {
-    Scaffold(
-        containerColor = JatrilrunTheme.colors.backgroundPrimary,
-        bottomBar = {
-            Box(Modifier.navigationBarsPadding()) { bottomBar() }
-        }
-    ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-            Column(
-                Modifier.padding(JrSpacing.S24),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(JrSpacing.S12)
-            ) {
-                Text("Tiket Saya", style = JatrilrunTheme.typography.heading, color = JatrilrunTheme.colors.textPrimary)
-                Text(
-                    "Anda belum memiliki tiket.",
-                    style = JatrilrunTheme.typography.body,
-                    color = JatrilrunTheme.colors.textSecondary
-                )
-            }
         }
     }
 }

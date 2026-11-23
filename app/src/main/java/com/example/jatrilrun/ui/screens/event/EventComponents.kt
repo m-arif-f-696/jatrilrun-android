@@ -260,6 +260,7 @@ internal fun EventLink(text: String, onClick: () -> Unit, modifier: Modifier = M
 internal fun EventChips(
     labels: List<String>,
     selected: String,
+    fill: Boolean = true,
     onSelect: (String) -> Unit
 ) {
     Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -267,7 +268,7 @@ internal fun EventChips(
             val active = label == selected
             val colors = JatrilrunTheme.colors
             Surface(
-                modifier = Modifier.weight(1f).heightIn(min = 44.dp)
+                modifier = (if (fill) Modifier.weight(1f) else Modifier.widthIn(min = 106.dp)).heightIn(min = 44.dp)
                     .selectable(active, role = Role.RadioButton) { onSelect(label) },
                 shape = JrShapes.Pill,
                 color = if (active) colors.secondaryAccent else colors.backgroundPrimary,

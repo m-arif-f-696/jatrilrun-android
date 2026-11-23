@@ -153,7 +153,7 @@ internal fun SearchEvents(
             }
         }
         EventPanel("Jelajahi berdasarkan jarak") {
-            EventChips(listOf("10K", "30K", "50K"), "", onDistance)
+            EventChips(listOf("10K", "30K", "50K"), "", onSelect = onDistance)
             EventBody("Cari nama event atau kota. Filter membantu memilih tanggal dan anggaran.")
         }
     }
@@ -167,25 +167,30 @@ internal fun SearchResults(
     onSearch: () -> Unit,
     onFilter: () -> Unit,
     onEvent: (TrailEvent) -> Unit,
-    bottomBar: @Composable () -> Unit
+    bottomBar: @Composable () -> Unit,
+    onReset: () -> Unit = {}
 ) {
     val results = filters.results(query)
     val chips = listOf(filters.region, filters.distance, if (filters.month.isEmpty()) "" else "Nov 2026")
         .filter { it.isNotEmpty() }
         .ifEmpty { listOfNotNull(filters.type.takeIf { it.isNotEmpty() }) }
-    EventScreen("Hasil pencarian", onBack, bottomBar = bottomBar) {
+    EventScreen(if (results.isEmpty()) "Hasil kosong" else "Hasil pencarian", onBack, bottomBar = bottomBar) {
         SearchLauncher(query, onSearch)
         if (chips.isNotEmpty()) {
-            EventChips(chips, filters.region) { onFilter() }
-        }
-        EventCaption("${results.size} event sesuai pilihanmu")
-        results.forEach { event -> EventListingCard(event, { onEvent(event) }, compact = event != baliTrailRun) }
-        if (results.isEmpty()) {
-            EventPanel("Belum ada event yang cocok") {
-                EventBody("Coba kata kunci lain atau ubah filter pencarian.")
+            if (results.isEmpty()) {
+                // Figma "Hasil kosong": chip filter aktif selalu terpilih, lebar mengikuti isi.
+                EventChips(chips, selected = chips.first(), fill = false) { onFilter() }
+            } else {
+                EventChips(chips, filters.region) { onFilter() }
             }
         }
-        EventLink("Ubah filter", onFilter, Modifier.fillMaxWidth())
+        if (results.isEmpty()) {
+            EmptyResultsCard(onReset)
+        } else {
+            EventCaption("${results.size} event sesuai pilihanmu")
+            results.forEach { event -> EventListingCard(event, { onEvent(event) }, compact = event != baliTrailRun) }
+            EventLink("Ubah filter", onFilter, Modifier.fillMaxWidth())
+        }
     }
 }
 

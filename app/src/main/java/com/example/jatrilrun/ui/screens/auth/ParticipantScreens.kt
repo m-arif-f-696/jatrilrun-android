@@ -7,18 +7,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.jatrilrun.ui.components.CommonTextField
+import com.example.jatrilrun.ui.screens.checkout.EmergencyForm
+import com.example.jatrilrun.ui.screens.checkout.ParticipantForm
+import com.example.jatrilrun.ui.screens.checkout.RegistrationStepper
 import com.example.jatrilrun.ui.screens.event.*
 
 @Composable
-fun ParticipantScreen(onBack: () -> Unit, onContinue: () -> Unit) {
-    var fullName by rememberSaveable { mutableStateOf("") }
-    var bibName by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
-    var phone by rememberSaveable { mutableStateOf("") }
-    var birthDate by rememberSaveable { mutableStateOf("") }
-    var gender by rememberSaveable { mutableStateOf("") }
-    var jersey by rememberSaveable { mutableStateOf("") }
-    var community by rememberSaveable { mutableStateOf("") }
+fun ParticipantScreen(
+    initial: ParticipantForm = ParticipantForm(),
+    onBack: () -> Unit,
+    onContinue: (ParticipantForm) -> Unit
+) {
+    var fullName by rememberSaveable { mutableStateOf(initial.fullName) }
+    var bibName by rememberSaveable { mutableStateOf(initial.bibName) }
+    var email by rememberSaveable { mutableStateOf(initial.email) }
+    var phone by rememberSaveable { mutableStateOf(initial.phone) }
+    var birthDate by rememberSaveable { mutableStateOf(initial.birthDate) }
+    var gender by rememberSaveable { mutableStateOf(initial.gender) }
+    var jersey by rememberSaveable { mutableStateOf(initial.jersey) }
+    var community by rememberSaveable { mutableStateOf(initial.community) }
     var submitted by rememberSaveable { mutableStateOf(false) }
     val bibInvalid = bibName.isBlank() || bibName.length > 12
     val emailInvalid = !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
@@ -28,10 +35,17 @@ fun ParticipantScreen(onBack: () -> Unit, onContinue: () -> Unit) {
     EventScreen("Data peserta", onBack, bottomBar = {
         EventFooter(if (submitted && invalidCount > 0) "Perbaiki & lanjutkan" else "Lanjut ke kontak darurat", {
             submitted = true
-            if (invalidCount == 0) onContinue()
+            if (invalidCount == 0) {
+                onContinue(
+                    ParticipantForm(
+                        fullName.trim(), bibName.trim(), email.trim(), phone.trim(),
+                        birthDate.trim(), gender, jersey, community.trim()
+                    )
+                )
+            }
         })
     }) {
-        EventPanel { EventCaption("1 dari 4 · Data peserta") }
+        RegistrationStepper(step = 1, label = "1 dari 4 · Data peserta")
         EventTitle("Kenalkan dirimu.")
         EventBody("Data ini digunakan untuk BIB, jersey, dan konfirmasi event.")
         if (submitted && invalidCount > 0) {
@@ -63,21 +77,25 @@ fun ParticipantScreen(onBack: () -> Unit, onContinue: () -> Unit) {
 }
 
 @Composable
-fun EmergencyContactScreen(onBack: () -> Unit, onContinue: () -> Unit) {
-    var name by rememberSaveable { mutableStateOf("") }
-    var relation by rememberSaveable { mutableStateOf("") }
-    var phone by rememberSaveable { mutableStateOf("") }
-    var medical by rememberSaveable { mutableStateOf("") }
+fun EmergencyContactScreen(
+    initial: EmergencyForm = EmergencyForm(),
+    onBack: () -> Unit,
+    onContinue: (EmergencyForm) -> Unit
+) {
+    var name by rememberSaveable { mutableStateOf(initial.name) }
+    var relation by rememberSaveable { mutableStateOf(initial.relation) }
+    var phone by rememberSaveable { mutableStateOf(initial.phone) }
+    var medical by rememberSaveable { mutableStateOf(initial.medical) }
     var submitted by rememberSaveable { mutableStateOf(false) }
     val invalid = name.isBlank() || relation.isBlank() || phone.filter(Char::isDigit).length < 10
 
     EventScreen("Kontak darurat", onBack, bottomBar = {
         EventFooter("Lanjut ke persetujuan", {
             submitted = true
-            if (!invalid) onContinue()
+            if (!invalid) onContinue(EmergencyForm(name.trim(), relation, phone.trim(), medical.trim()))
         })
     }) {
-        EventPanel { EventCaption("1 dari 4 · Kontak darurat") }
+        RegistrationStepper(step = 1, label = "1 dari 4 · Kontak darurat")
         EventTitle("Ada yang bisa\nkami hubungi.")
         EventBody("Pilih orang yang tidak mengikuti lomba ini.")
         if (submitted && invalid) EventNotice("Periksa kontak darurat",

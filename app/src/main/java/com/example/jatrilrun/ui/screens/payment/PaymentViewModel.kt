@@ -17,6 +17,13 @@ class PaymentViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow<PaymentUiState>(PaymentUiState.Idle)
     val uiState: StateFlow<PaymentUiState> = _uiState.asStateFlow()
 
+    private val _selectedMethod = MutableStateFlow<PaymentMethod?>(null)
+    val selectedMethod: StateFlow<PaymentMethod?> = _selectedMethod.asStateFlow()
+
+    fun selectMethod(method: PaymentMethod) {
+        _selectedMethod.value = method
+    }
+
     fun processPayment() {
         _uiState.value = PaymentUiState.Success
     }
