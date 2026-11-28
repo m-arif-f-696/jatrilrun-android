@@ -16,6 +16,8 @@ class HomeViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
+    init { viewModelScope.launch { authRepository.refreshSession() } }
+
     val user: StateFlow<User?> = authRepository.getLoggedInUser().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

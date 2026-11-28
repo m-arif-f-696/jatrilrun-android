@@ -15,6 +15,7 @@ sealed interface AuthUiState {
     object Idle : AuthUiState
     object Loading : AuthUiState
     data class Success(val user: User) : AuthUiState
+    data class Registered(val email: String) : AuthUiState
     data class Error(val message: String) : AuthUiState
 }
 
@@ -42,7 +43,7 @@ class AuthViewModel @Inject constructor(
             _uiState.value = AuthUiState.Loading
             val result = authRepository.register(name, email, password)
             result.fold(
-                onSuccess = { user -> _uiState.value = AuthUiState.Success(user) },
+                onSuccess = { _ -> _uiState.value = AuthUiState.Registered(email) },
                 onFailure = { error -> _uiState.value = AuthUiState.Error(error.localizedMessage ?: "Register failed") }
             )
         }

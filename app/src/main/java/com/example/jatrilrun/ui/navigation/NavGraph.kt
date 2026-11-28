@@ -8,6 +8,7 @@ import com.example.jatrilrun.ui.screens.auth.LoginScreen
 import com.example.jatrilrun.ui.screens.auth.RegisterScreen
 import com.example.jatrilrun.ui.screens.home.HomeScreen
 import com.example.jatrilrun.ui.screens.payment.PaymentScreen
+import com.example.jatrilrun.ui.screens.payment.LivePaymentScreen
 import com.example.jatrilrun.ui.screens.auth.ParticipantScreen
 import com.example.jatrilrun.ui.screens.auth.EmergencyContactScreen
 import com.example.jatrilrun.ui.screens.checkout.ConsentScreen
@@ -40,6 +41,7 @@ fun NavGraph(
     val registration: RegistrationViewModel = hiltViewModel()
     val draft by registration.draft.collectAsState()
     val tickets by registration.tickets.collectAsState()
+    val liveSubmitState by registration.submitState.collectAsState()
     val summary = draft.toCheckoutSummary()
 
     fun leaveRegistration() {
@@ -54,6 +56,7 @@ fun NavGraph(
         composable(Screen.Login.route) {
             LoginScreen(
                 selectedCategory = selectedCategory.takeIf { registrationFlow },
+                allowDemo = draft.serverEventId.isBlank(),
                 onBack = { navController.popBackStack() },
                 onNavigateToRegister = { navController.navigate(Screen.Register.route) },
                 onLoginSuccess = {
@@ -70,6 +73,7 @@ fun NavGraph(
         }
         composable(Screen.Register.route) {
             RegisterScreen(
+                allowDemo = draft.serverEventId.isBlank(),
                 onBack = { navController.popBackStack() },
                 onNavigateToLogin = { navController.popBackStack() },
                 onRegisterSuccess = {
@@ -89,6 +93,12 @@ fun NavGraph(
                 onNavigateToLogin = { category ->
                     selectedCategory = category
                     registration.selectCategory(category)
+                    registrationFlow = true
+                    navController.navigate(Screen.Login.route) { launchSingleTop = true }
+                },
+                onNavigateToServerRegistration = { event, category ->
+                    registration.selectServerCategory(event, category)
+                    selectedCategory = category.type?.name ?: "Kategori"
                     registrationFlow = true
                     navController.navigate(Screen.Login.route) { launchSingleTop = true }
                 },
@@ -112,6 +122,8 @@ fun NavGraph(
         composable(Screen.Summary.route) {
             SummaryScreen(
                 summary = summary,
+                isLive = draft.serverEventId.isNotBlank(),
+                liveState = liveSubmitState,
                 onBack = { navController.popBackStack() },
                 onEditParticipant = {
                     // Kembali ke layar peserta yang masih ada di back stack supaya isian tidak hilang.
@@ -119,7 +131,26 @@ fun NavGraph(
                         navController.navigate(Screen.Participant.route) { launchSingleTop = true }
                     }
                 },
-                onContinue = { navController.navigate(Screen.Payment.route) }
+                onContinue = {
+                    if (draft.serverEventId.isNotBlank()) {
+                        registration.submitLiveRegistration { id ->
+                            navController.navigate(Screen.LivePayment.createRoute(id))
+                        }
+                    } else {
+                        navController.navigate(Screen.Payment.route)
+                    }
+                }
+            )
+        }
+        composable(
+            route = Screen.LivePayment.pattern,
+            arguments = listOf(navArgument(Screen.LivePayment.RegistrationArg) { type = NavType.StringType })
+        ) { entry ->
+            val id = entry.arguments?.getString(Screen.LivePayment.RegistrationArg).orEmpty()
+            LivePaymentScreen(
+                registrationId = id,
+                onBack = { navController.popBackStack() },
+                onHome = { leaveRegistration() }
             )
         }
         composable(Screen.Payment.route) {
@@ -188,6 +219,7 @@ fun NavGraph(
             RegistrationExitGuard(onExit = { leaveRegistration() }) { requestExit ->
                 ParticipantScreen(
                     initial = draft.participant,
+                    requiresServerProfile = draft.serverEventId.isNotBlank(),
                     onBack = requestExit,
                     onContinue = { form ->
                         registration.saveParticipant(form)

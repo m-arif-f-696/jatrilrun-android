@@ -14,8 +14,11 @@ import androidx.navigation.compose.rememberNavController
 import com.example.jatrilrun.ui.components.CommonButton
 import com.example.jatrilrun.ui.components.JrBottomNavigationBar
 import com.example.jatrilrun.ui.screens.event.*
+import com.example.jatrilrun.data.remote.dto.CategoryDto
+import com.example.jatrilrun.data.remote.dto.EventDto
 import com.example.jatrilrun.ui.screens.tickets.TicketsScreen
 import com.example.jatrilrun.ui.screens.tickets.TicketsViewModel
+import com.example.jatrilrun.ui.screens.tickets.ServerTicketsPanel
 import com.example.jatrilrun.ui.theme.JatrilrunTheme
 import com.example.jatrilrun.ui.theme.JrSpacing
 
@@ -37,6 +40,7 @@ private object DiscoverRoute {
 fun HomeScreen(
     onNavigateToPayment: () -> Unit,
     onNavigateToLogin: (String) -> Unit,
+    onNavigateToServerRegistration: (EventDto, CategoryDto) -> Unit,
     onLogout: () -> Unit,
     onOpenRacePass: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
@@ -75,7 +79,17 @@ fun HomeScreen(
         }
     }
 
+    val serverEvents: ServerEventViewModel = hiltViewModel()
+    val eventState by serverEvents.state.collectAsState()
+    val catalog = remember(eventState) {
+        (eventState as? ServerEventState.Ready)?.events.orEmpty().map { it.toListing() }
+    }
+
     fun openEvent(event: TrailEvent) {
+        event.serverSlug?.let {
+            open("server-event/${android.net.Uri.encode(it)}")
+            return
+        }
         open(if (event.soldOut) DiscoverRoute.SoldOut else "${DiscoverRoute.Detail}/${event.id}")
     }
 
@@ -90,11 +104,14 @@ fun HomeScreen(
                 onBrowse = { openTab(DiscoverRoute.Events) },
                 onTickets = { openTab(DiscoverRoute.Tickets) },
                 onEvent = ::openEvent,
+                catalog = catalog,
+                feedback = { ServerEventFeedback(eventState) { serverEvents.reload() } },
                 bottomBar = { JrBottomNavigationBar(DiscoverRoute.Home, ::openTab) },
                 account = {
                     EventPanel {
                         EventText("Pengguna: ${user?.name ?: "Guest"}")
-                        CommonButton(text = "Ke Halaman Pembayaran", onClick = onNavigateToPayment)
+                        CommonButton(text = "Simulasi daftar event", onClick = { openEvent(baliTrailRun) })
+                        CommonButton(text = "Simulasi pembayaran", onClick = onNavigateToPayment)
                         CommonButton(text = "Keluar", onClick = {
                             viewModel.logout()
                             onLogout()
@@ -105,6 +122,8 @@ fun HomeScreen(
         }
         composable(DiscoverRoute.Events) {
             BrowseEvents(
+                catalog = catalog,
+                feedback = { ServerEventFeedback(eventState) { serverEvents.reload() } },
                 onBack = ::back,
                 onSearch = {
                     query = ""
@@ -129,7 +148,8 @@ fun HomeScreen(
                 tickets = tickets,
                 onBrowse = { openTab(DiscoverRoute.Events) },
                 onOpenPass = { onOpenRacePass() },
-                bottomBar = { JrBottomNavigationBar(DiscoverRoute.Tickets, ::openTab) }
+                bottomBar = { JrBottomNavigationBar(DiscoverRoute.Tickets, ::openTab) },
+                serverContent = { ServerTicketsPanel() }
             )
         }
         composable(DiscoverRoute.Search) {
@@ -154,7 +174,7 @@ fun HomeScreen(
             )
         }
         composable(DiscoverRoute.Filter) {
-            FilterEvents(query, filters, ::back) {
+            FilterEvents(catalog, query, filters, ::back) {
                 filters = it
                 showResults()
             }
@@ -162,12 +182,20 @@ fun HomeScreen(
         composable(DiscoverRoute.Results) {
             SearchResults(
                 query, filters, ::back,
+                catalog = catalog,
+                onReset = { query = ""; filters = EventFilters() },
                 onSearch = { open(DiscoverRoute.Search) },
                 onFilter = { open(DiscoverRoute.Filter) },
                 onEvent = ::openEvent,
                 bottomBar = {
                     JrBottomNavigationBar(DiscoverRoute.Events, ::openTab, containerColor = EventCardWhite)
                 }
+            )
+        }
+        composable("server-event/{slug}") { entry ->
+            ServerEventDetail(
+                entry.arguments?.getString("slug").orEmpty(), ::back,
+                onNavigateToServerRegistration, serverEvents
             )
         }
         composable("${DiscoverRoute.Detail}/{eventId}") { entry ->

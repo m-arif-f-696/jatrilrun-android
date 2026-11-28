@@ -32,6 +32,7 @@ fun PaymentSuccessScreen(
     EventScreen("Pembayaran berhasil", onBack, bottomBar = {
         EventFooter("Lihat race pass", onViewRacePass)
     }) {
+        EventNotice("Status demo", "Layar ini merupakan simulasi; pembayaran dan race pass belum diverifikasi oleh server.")
         EventCard(color = SuccessTint) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 EventIcon(R.drawable.check, 64, colors.statusSuccess)

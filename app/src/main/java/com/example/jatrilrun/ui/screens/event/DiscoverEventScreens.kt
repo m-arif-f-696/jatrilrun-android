@@ -30,6 +30,8 @@ internal fun DiscoverHome(
     onBrowse: () -> Unit,
     onTickets: () -> Unit,
     onEvent: (TrailEvent) -> Unit,
+    catalog: List<TrailEvent>,
+    feedback: @Composable () -> Unit,
     bottomBar: @Composable () -> Unit,
     account: @Composable () -> Unit
 ) {
@@ -50,24 +52,31 @@ internal fun DiscoverHome(
     ) {
         EventTitle("Langkah baru,\ncerita baru.")
         SearchLauncher(onClick = onSearch)
-        EventHeading("Pilihan komunitas")
-        EventListingCard(baliTrailRun, { onEvent(baliTrailRun) }, home = true)
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            EventHeading("Dekat Yogyakarta")
-            EventLink("Lihat semua", onBrowse)
+        feedback()
+        catalog.firstOrNull()?.let { featured ->
+            EventHeading("Pilihan komunitas")
+            EventListingCard(featured, { onEvent(featured) }, home = true)
+            val nearby = catalog.drop(1).filter { it.location.contains("Yogyakarta", ignoreCase = true) }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                EventHeading(if (nearby.isEmpty()) "Event lainnya" else "Dekat Yogyakarta")
+                EventLink("Lihat semua", onBrowse)
+            }
+            (nearby.firstOrNull() ?: catalog.getOrNull(1))?.let { event ->
+                EventListingCard(event, { onEvent(event) }, compact = true, home = true)
+            }
         }
-        EventListingCard(merapiSunriseRun, { onEvent(merapiSunriseRun) }, compact = true, home = true)
-        EventCaption("Event sekitar Yogyakarta. Ubah lokasi melalui filter.")
         account()
     }
 }
 
 @Composable
 internal fun BrowseEvents(
+    catalog: List<TrailEvent> = trailEvents,
+    feedback: @Composable () -> Unit = {},
     onBack: () -> Unit,
     onSearch: () -> Unit,
     onFilter: () -> Unit,
@@ -75,7 +84,7 @@ internal fun BrowseEvents(
     bottomBar: @Composable () -> Unit
 ) {
     var type by rememberSaveable { mutableStateOf("Semua") }
-    val events = EventFilters(type = type.takeUnless { it == "Semua" }.orEmpty()).results("")
+    val events = EventFilters(type = type.takeUnless { it == "Semua" }.orEmpty()).results("", catalog)
     EventScreen("Jelajahi event", onBack, bottomBar = bottomBar) {
         EventTitle("Temukan garis\nstart berikutnya.")
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -85,11 +94,12 @@ internal fun BrowseEvents(
             }
         }
         EventChips(listOf("Semua", "Trail run", "Road run"), type) { type = it }
-        EventCaption("${events.size} event mendatang")
-        events.forEach { event ->
+        feedback()
+        if (catalog.isNotEmpty()) EventCaption("${events.size} event")
+        events.forEachIndexed { index, event ->
             EventListingCard(
-                event, { onEvent(event) }, compact = event != baliTrailRun,
-                date = "${event.shortDate} ${event.month.substringAfter(' ')}",
+                event, { onEvent(event) }, compact = index != 0,
+                date = event.shortDate,
                 location = event.region
             )
         }
@@ -168,9 +178,10 @@ internal fun SearchResults(
     onFilter: () -> Unit,
     onEvent: (TrailEvent) -> Unit,
     bottomBar: @Composable () -> Unit,
-    onReset: () -> Unit = {}
+    onReset: () -> Unit = {},
+    catalog: List<TrailEvent> = trailEvents
 ) {
-    val results = filters.results(query)
+    val results = filters.results(query, catalog)
     val chips = listOf(filters.region, filters.distance, if (filters.month.isEmpty()) "" else "Nov 2026")
         .filter { it.isNotEmpty() }
         .ifEmpty { listOfNotNull(filters.type.takeIf { it.isNotEmpty() }) }
@@ -188,7 +199,7 @@ internal fun SearchResults(
             EmptyResultsCard(onReset)
         } else {
             EventCaption("${results.size} event sesuai pilihanmu")
-            results.forEach { event -> EventListingCard(event, { onEvent(event) }, compact = event != baliTrailRun) }
+            results.forEachIndexed { index, event -> EventListingCard(event, { onEvent(event) }, compact = index != 0) }
             EventLink("Ubah filter", onFilter, Modifier.fillMaxWidth())
         }
     }
@@ -209,13 +220,14 @@ internal val EventFiltersSaver = listSaver<EventFilters, String>(
 
 @Composable
 internal fun FilterEvents(
+    catalog: List<TrailEvent> = trailEvents,
     query: String,
     filters: EventFilters,
     onBack: () -> Unit,
     onApply: (EventFilters) -> Unit
 ) {
     var draft by rememberSaveable(stateSaver = EventFiltersSaver) { mutableStateOf(filters) }
-    val count = draft.results(query).size
+    val count = draft.results(query, catalog).size
     EventScreen("Filter event", onBack, bottomBar = {
         EventFooter("Tampilkan $count event", { onApply(draft) })
     }) {

@@ -41,6 +41,7 @@ fun PaymentWaitingScreen(
     EventScreen("Menunggu pembayaran", onBack, bottomBar = {
         EventFooter("Cek status pembayaran", onCheckStatus)
     }) {
+        EventNotice("Simulasi pembayaran", "Nomor pembayaran dan status pada layar ini adalah contoh. Tidak ada transaksi yang dibuat di server.")
         EventCard(color = EventInfoTint) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 EventStatusBadge("Menunggu pembayaran")

@@ -25,10 +25,14 @@ internal data class TrailEvent(
     val minimumPrice: Int,
     val image: Int,
     val categories: List<RaceCategory> = emptyList(),
-    val soldOut: Boolean = false
+    val soldOut: Boolean = false,
+    val serverSlug: String? = null,
+    val serverDate: String? = null,
+    val serverMonth: String? = null,
+    val registrationLabel: String? = null
 ) {
-    val shortDate get() = "$day Nov"
-    val month get() = "November 2026"
+    val shortDate get() = serverDate ?: "$day Nov"
+    val month get() = serverMonth ?: "November 2026"
     val distanceLabel get() = distances.joinToString(" · ")
 }
 
@@ -70,9 +74,9 @@ internal data class EventFilters(
     val price: EventPrice? = null,
     val availableOnly: Boolean = false
 ) {
-    fun results(query: String): List<TrailEvent> {
+    fun results(query: String, catalog: List<TrailEvent> = trailEvents): List<TrailEvent> {
         val terms = query.trim().split(Regex("\\s+")).filter { it.isNotEmpty() && !it.equals("di", true) }
-        return trailEvents.filter { event ->
+        return catalog.filter { event ->
             val searchable = "${event.title} ${event.location} ${event.type} ${event.distanceLabel}"
             val matchesPrice = when (price) {
                 EventPrice.Under300 -> event.minimumPrice < 300_000
@@ -81,11 +85,11 @@ internal data class EventFilters(
                 null -> true
             }
             terms.all { searchable.contains(it, ignoreCase = true) } &&
-                (region.isEmpty() || event.region == region) &&
+                (region.isEmpty() || event.location.contains(region, ignoreCase = true) || event.region == region) &&
                 (type.isEmpty() || event.type == type) &&
                 (distance.isEmpty() || distance in event.distances) &&
                 (month.isEmpty() || event.month == month) &&
-                (!availableOnly || !event.soldOut) &&
+                (!availableOnly || (!event.soldOut && (event.registrationLabel == null || event.registrationLabel == "Pendaftaran buka"))) &&
                 matchesPrice
         }
     }

@@ -199,8 +199,8 @@ internal fun EventListingCard(
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (!home) {
                         EventBadge(
-                            if (event.soldOut) "Kuota habis" else "Pendaftaran buka",
-                            closed = event.soldOut,
+                            event.registrationLabel ?: if (event.soldOut) "Kuota habis" else "Pendaftaran buka",
+                            closed = event.soldOut || (event.registrationLabel != null && event.registrationLabel != "Pendaftaran buka"),
                             wide = true
                         )
                     }

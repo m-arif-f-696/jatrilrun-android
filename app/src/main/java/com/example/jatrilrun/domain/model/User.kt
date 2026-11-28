@@ -1,7 +1,7 @@
 package com.example.jatrilrun.domain.model
 
 data class User(
-    val id: Int,
+    val id: String,
     val name: String,
     val email: String,
     val token: String? = null

@@ -9,6 +9,11 @@ sealed class Screen(val route: String) {
     object Consent : Screen("consent")
     object Summary : Screen("summary")
     object Payment : Screen("payment")
+    object LivePayment : Screen("live-payment") {
+        const val RegistrationArg = "registrationId"
+        val pattern = "$route/{$RegistrationArg}"
+        fun createRoute(id: String) = "$route/$id"
+    }
     object PaymentSuccess : Screen("payment-success")
     object PaymentFailed : Screen("payment-failed")
     object RacePass : Screen("race-pass")

@@ -11,10 +11,13 @@ import com.example.jatrilrun.ui.screens.checkout.EmergencyForm
 import com.example.jatrilrun.ui.screens.checkout.ParticipantForm
 import com.example.jatrilrun.ui.screens.checkout.RegistrationStepper
 import com.example.jatrilrun.ui.screens.event.*
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun ParticipantScreen(
     initial: ParticipantForm = ParticipantForm(),
+    requiresServerProfile: Boolean = false,
     onBack: () -> Unit,
     onContinue: (ParticipantForm) -> Unit
 ) {
@@ -26,11 +29,21 @@ fun ParticipantScreen(
     var gender by rememberSaveable { mutableStateOf(initial.gender) }
     var jersey by rememberSaveable { mutableStateOf(initial.jersey) }
     var community by rememberSaveable { mutableStateOf(initial.community) }
+    var idCard by rememberSaveable { mutableStateOf(initial.idCard) }
+    var idCardType by rememberSaveable { mutableStateOf(initial.idCardType) }
+    var bloodType by rememberSaveable { mutableStateOf(initial.bloodType) }
     var submitted by rememberSaveable { mutableStateOf(false) }
     val bibInvalid = bibName.isBlank() || bibName.length > 12
     val emailInvalid = !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    val invalidCount = listOf(fullName.isBlank(), bibInvalid, emailInvalid, phone.isBlank(),
-        birthDate.isBlank(), gender.isBlank(), jersey.isBlank()).count { it }
+    val phoneInvalid = phone.isBlank() || (requiresServerProfile && phone.length > 15)
+    val birthDateInvalid = birthDate.isBlank() || (requiresServerProfile && runCatching {
+        SimpleDateFormat("dd/MM/yyyy", Locale.ROOT).apply { isLenient = false }.parse(birthDate)
+    }.getOrNull() == null)
+    val invalidCount = listOf(fullName.isBlank(), bibInvalid, emailInvalid, phoneInvalid,
+        birthDateInvalid, gender.isBlank(), jersey.isBlank(),
+        requiresServerProfile && (idCard.isBlank() || idCard.length > 16),
+        requiresServerProfile && idCardType.isBlank(),
+        requiresServerProfile && bloodType.isBlank()).count { it }
 
     EventScreen("Data peserta", onBack, bottomBar = {
         EventFooter(if (submitted && invalidCount > 0) "Perbaiki & lanjutkan" else "Lanjut ke kontak darurat", {
@@ -39,7 +52,7 @@ fun ParticipantScreen(
                 onContinue(
                     ParticipantForm(
                         fullName.trim(), bibName.trim(), email.trim(), phone.trim(),
-                        birthDate.trim(), gender, jersey, community.trim()
+                        birthDate.trim(), gender, jersey, community.trim(), idCard.trim(), idCardType, bloodType
                     )
                 )
             }
@@ -64,14 +77,26 @@ fun ParticipantScreen(
             EventCaption(if (submitted && emailInvalid) "Masukkan alamat email yang valid."
                 else "Konfirmasi dan tiket dikirim ke sini.")
             CommonTextField(phone, { phone = it }, "Nomor WhatsApp")
-            EventCaption("Nomor aktif untuk informasi event.")
+            EventCaption(if (submitted && phoneInvalid) "Nomor wajib diisi, maksimal 15 karakter untuk server."
+                else "Nomor aktif untuk informasi event.")
             CommonTextField(birthDate, { birthDate = it }, "Tanggal lahir (DD/MM/YYYY)")
-            EventCaption("Usia minimum 18 tahun saat event.")
+            EventCaption(if (submitted && birthDateInvalid) "Gunakan tanggal valid dengan format DD/MM/YYYY."
+                else "Usia minimum 18 tahun saat event.")
             ChoiceField("Jenis kelamin", listOf("Laki-laki", "Perempuan"), gender) { gender = it }
         }
         EventPanel("Info peserta & race kit") {
             ChoiceField("Ukuran jersey", listOf("S", "M", "L", "XL", "XXL"), jersey) { jersey = it }
             CommonTextField(community, { community = it }, "Komunitas (opsional)")
+            if (requiresServerProfile) EventCaption("Nama BIB, jersey, dan komunitas belum didukung API pendaftaran; data ini hanya ada pada draft aplikasi.")
+        }
+        if (requiresServerProfile) EventPanel("Identitas wajib untuk profil runner") {
+            EventBody("Backend memerlukan identitas dan golongan darah sebelum pendaftaran.")
+            ChoiceField("Jenis identitas", listOf("KTP", "SIM"), idCardType) { idCardType = it }
+            if (submitted && idCardType.isBlank()) EventCaption("Pilih jenis identitas.")
+            CommonTextField(idCard, { idCard = it }, "Nomor identitas", isError = submitted && (idCard.isBlank() || idCard.length > 16))
+            EventCaption("Maksimal 16 karakter.")
+            ChoiceField("Golongan darah", listOf("A", "B", "AB", "O"), bloodType) { bloodType = it }
+            if (submitted && bloodType.isBlank()) EventCaption("Pilih golongan darah.")
         }
     }
 }
@@ -87,7 +112,10 @@ fun EmergencyContactScreen(
     var phone by rememberSaveable { mutableStateOf(initial.phone) }
     var medical by rememberSaveable { mutableStateOf(initial.medical) }
     var submitted by rememberSaveable { mutableStateOf(false) }
-    val invalid = name.isBlank() || relation.isBlank() || phone.filter(Char::isDigit).length < 10
+    val nameInvalid = name.isBlank()
+    val relationInvalid = relation.isBlank()
+    val phoneInvalid = phone.filter(Char::isDigit).length < 10
+    val invalid = nameInvalid || relationInvalid || phoneInvalid
 
     EventScreen("Kontak darurat", onBack, bottomBar = {
         EventFooter("Lanjut ke persetujuan", {
@@ -98,14 +126,19 @@ fun EmergencyContactScreen(
         RegistrationStepper(step = 1, label = "1 dari 4 · Kontak darurat")
         EventTitle("Ada yang bisa\nkami hubungi.")
         EventBody("Pilih orang yang tidak mengikuti lomba ini.")
-        if (submitted && invalid) EventNotice("Periksa kontak darurat",
-            "Isi nama, hubungan, dan nomor WhatsApp yang dapat dihubungi.", warning = true)
+        if (submitted && invalid) EventNotice(
+            "Periksa kontak darurat",
+            "Lengkapi kolom yang ditandai di bagian kontak. Informasi medis tetap opsional.",
+            warning = true
+        )
         EventPanel("Kontak yang bisa dihubungi") {
-            CommonTextField(name, { name = it }, "Nama kontak")
-            EventCaption("Nama orang terdekat.")
+            CommonTextField(name, { name = it }, "Nama kontak", isError = submitted && nameInvalid)
+            EventCaption(if (submitted && nameInvalid) "Nama kontak wajib diisi." else "Nama orang terdekat.")
             ChoiceField("Hubungan", listOf("Orang tua", "Pasangan", "Saudara", "Teman"), relation) { relation = it }
-            CommonTextField(phone, { phone = it }, "Nomor WhatsApp")
-            EventCaption("Pastikan nomor dapat dihubungi saat race.")
+            if (submitted && relationInvalid) EventCaption("Pilih hubungan dengan kontak darurat.")
+            CommonTextField(phone, { phone = it }, "Nomor WhatsApp", isError = submitted && phoneInvalid)
+            EventCaption(if (submitted && phoneInvalid) "Nomor WhatsApp harus berisi minimal 10 digit."
+                else "Pastikan nomor dapat dihubungi saat race.")
         }
         EventPanel("Informasi medis") {
             CommonTextField(medical, { medical = it }, "Kondisi medis / alergi (opsional)")

@@ -11,7 +11,10 @@ data class ParticipantForm(
     val birthDate: String = "",
     val gender: String = "",
     val jersey: String = "",
-    val community: String = ""
+    val community: String = "",
+    val idCard: String = "",
+    val idCardType: String = "",
+    val bloodType: String = ""
 )
 
 /** Isian layar "Kontak darurat". */
@@ -29,6 +32,13 @@ data class EmergencyForm(
  */
 data class RegistrationDraft(
     val categoryDistance: String = "",
+    val serverEventId: String = "",
+    val serverCategoryId: String = "",
+    val serverEventName: String = "",
+    val serverCategoryName: String = "",
+    val serverEventDate: String = "",
+    val serverEventLocation: String = "",
+    val serverCategoryPrice: Int = 0,
     val participant: ParticipantForm = ParticipantForm(),
     val emergency: EmergencyForm = EmergencyForm(),
     val consentAccepted: Boolean = false,
@@ -44,6 +54,22 @@ internal const val ServiceFee = 5_000
  * Jika belum ada kategori (mis. layar dibuka lewat tombol demo di Beranda), pakai [CheckoutSummary.Sample].
  */
 internal fun RegistrationDraft.toCheckoutSummary(): CheckoutSummary {
+    if (serverEventId.isNotBlank()) {
+        return CheckoutSummary(
+            eventTitle = serverEventName,
+            category = serverCategoryName,
+            date = serverEventDate,
+            location = serverEventLocation,
+            participantName = participant.fullName,
+            bibName = participant.bibName,
+            jersey = participant.jersey,
+            community = participant.community.ifBlank { null },
+            registrationFee = serverCategoryPrice,
+            serviceFee = 0,
+            emergencyName = emergency.name,
+            emergencyPhone = emergency.phone
+        )
+    }
     val event = baliTrailRun
     val category = event.categories.firstOrNull { it.distance == categoryDistance }
         ?: return CheckoutSummary.Sample

@@ -41,6 +41,7 @@ fun TicketsScreen(
     tickets: List<RacePass>,
     onBrowse: () -> Unit,
     onOpenPass: (RacePass) -> Unit,
+    serverContent: @Composable () -> Unit = {},
     bottomBar: @Composable () -> Unit
 ) {
     val colors = JatrilrunTheme.colors
@@ -55,6 +56,7 @@ fun TicketsScreen(
         },
         bottomBar = bottomBar
     ) {
+        serverContent()
         if (tickets.isEmpty()) {
             Spacer(Modifier.height(96.dp))
             Column(

@@ -18,15 +18,23 @@ fun SummaryScreen(
     onBack: () -> Unit,
     onEditParticipant: () -> Unit,
     onContinue: () -> Unit,
-    summary: CheckoutSummary = CheckoutSummary.Sample
+    summary: CheckoutSummary = CheckoutSummary.Sample,
+    isLive: Boolean = false,
+    liveState: LiveRegistrationState = LiveRegistrationState.Idle
 ) {
     val colors = JatrilrunTheme.colors
 
     EventScreen("Ringkasan", onBack, bottomBar = {
-        EventFooter("Pilih metode pembayaran", onContinue)
+        EventFooter(
+            if (isLive) "Daftar di server & lanjut" else "Pilih metode pembayaran",
+            onContinue,
+            enabled = liveState !is LiveRegistrationState.Loading && liveState !is LiveRegistrationState.Created
+        )
     }) {
         RegistrationStepper(step = 2, label = "2 dari 4 · Ringkasan")
         EventTitle("Periksa sebelum bayar.")
+        if (liveState is LiveRegistrationState.Loading) EventCaption("Menyimpan profil dan pendaftaran ke server...")
+        if (liveState is LiveRegistrationState.Error) EventNotice("Pendaftaran gagal", liveState.message, warning = true)
 
         RegistrationSummaryCard(
             summary,
@@ -35,6 +43,7 @@ fun SummaryScreen(
 
         EventHeading("Rincian biaya")
         CostBreakdown(summary)
+        if (isLive) EventCaption("Nominal final mengikuti transaksi yang dibuat server setelah pendaftaran.")
 
         EventLink("Ubah data peserta", onEditParticipant, Modifier.fillMaxWidth().heightIn(min = 52.dp))
 

@@ -18,7 +18,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "http://10.0.2.2:8000/" // Default Laravel localhost for Android Emulator
+    private const val BASE_URL = "https://www.jatrilrun.my.id/"
 
     @Provides
     @Singleton
@@ -29,7 +29,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(cookieJar: CookieJar): OkHttpClient {
-        return NetworkClient.createOkHttpClient(cookieJar)
+        return NetworkClient.createOkHttpClient(cookieJar, BASE_URL.trimEnd('/'))
     }
 
     @Provides
